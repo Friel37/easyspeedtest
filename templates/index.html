@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy SpeedTest - Internet Speed Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid #e5e7eb;
+        }
+        
+        .speedometer-needle {
+            transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        @keyframes pulse-ring {
+            0% {
+                transform: scale(0.95);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1);
+                opacity: 0.7;
+            }
+            100% {
+                transform: scale(0.95);
+                opacity: 1;
+            }
+        }
+        
+        .pulse-animation {
+            animation: pulse-ring 2s ease-in-out infinite;
+        }
+        
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+        }
+    </style>
+</head>
+<body class="bg-white min-h-screen py-8 px-4">
+    <!-- Main Container -->
+    <div class="mx-auto" style="max-width: 900px;">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-5xl font-black mb-2 text-gray-800">
+                <i class="fas fa-bolt mr-3 text-indigo-600"></i>Easy SpeedTest
+            </h1>
+            <p class="text-gray-600 text-lg">Test your internet connection speed</p>
+        </div>
+
+        <!-- Main Grid -->
+        <div class="grid lg:grid-cols-3 gap-6">
+            <!-- Left Panel - Main Speedometer -->
+            <div class="lg:col-span-2">
+                <div class="glass-effect rounded-3xl p-8">
+                    <!-- Status Bar -->
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-semibold text-gray-600" id="statusText">Ready to test</span>
+                            <span class="text-sm font-medium text-gray-500" id="serverText"></span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                            <div id="progressBar" class="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Large Speed Display -->
+                    <div class="text-center mb-8">
+                        <div class="relative inline-block">
+                            <div class="relative">
+                                <svg width="320" height="200" viewBox="0 0 320 200" class="mx-auto">
+                                    <!-- Background Arc -->
+                                    <path d="M 40 160 A 120 120 0 0 1 280 160" 
+                                          fill="none" 
+                                          stroke="#e5e7eb" 
+                                          stroke-width="24"
+                                          stroke-linecap="round"/>
+                                    <!-- Progress Arc -->
+                                    <path id="speedArc" 
+                                          d="M 40 160 A 120 120 0 0 1 280 160" 
+                                          fill="none" 
+                                          stroke="#4f46e5" 
+                                          stroke-width="24"
+                                          stroke-linecap="round"
+                                          stroke-dasharray="377"
+                                          stroke-dashoffset="377"
+                                          style="transition: stroke-dashoffset 0.5s ease;"/>
+                                    <!-- Center Text -->
+                                    <text x="160" y="120" text-anchor="middle" class="text-6xl font-black fill-gray-800" id="speedDisplay">0</text>
+                                    <text x="160" y="150" text-anchor="middle" class="text-xl fill-gray-500 font-semibold">Mbps</text>
+                                </svg>
+                            </div>
+                        </div>
+                        <p class="text-gray-600 font-medium mt-4" id="speedLabel">Click Start to begin testing</p>
+                    </div>
+
+                    <!-- Speed Chart -->
+                    <div class="bg-gray-50 rounded-2xl p-6">
+                        <h3 class="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">Real-time Speed</h3>
+                        <canvas id="speedChart" height="80"></canvas>
+                    </div>
+
+                    <!-- Start Button -->
+                    <button id="startButton" 
+                            class="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-5 px-8 rounded-2xl border border-indigo-700 transform hover:-translate-y-0.5 transition-all duration-200 text-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                        <i class="fas fa-play-circle mr-2"></i>
+                        <span id="buttonText">Start Speed Test</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Panel - Stats -->
+            <div class="space-y-6">
+                <!-- Ping Card -->
+                <div class="glass-effect rounded-3xl p-6 stat-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="bg-blue-500 w-12 h-12 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-signal text-white text-xl"></i>
+                        </div>
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Latency</span>
+                    </div>
+                    <div class="flex items-baseline">
+                        <span class="text-5xl font-black text-gray-800" id="pingValue">--</span>
+                        <span class="text-xl font-semibold text-gray-500 ml-2">ms</span>
+                    </div>
+                    <div class="mt-3">
+                        <div class="flex justify-between text-xs text-gray-600 mb-1">
+                            <span>Quality</span>
+                            <span id="pingQuality">--</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-1.5">
+                            <div id="pingBar" class="h-full bg-blue-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Download Card -->
+                <div class="glass-effect rounded-3xl p-6 stat-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="bg-green-500 w-12 h-12 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-download text-white text-xl"></i>
+                        </div>
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Download</span>
+                    </div>
+                    <div class="flex items-baseline">
+                        <span class="text-5xl font-black text-gray-800" id="downloadValue">--</span>
+                        <span class="text-xl font-semibold text-gray-500 ml-2">Mbps</span>
+                    </div>
+                    <div class="mt-3">
+                        <div class="flex justify-between text-xs text-gray-600 mb-1">
+                            <span>Speed</span>
+                            <span id="downloadQuality">--</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-1.5">
+                            <div id="downloadBar" class="h-full bg-green-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upload Card -->
+                <div class="glass-effect rounded-3xl p-6 stat-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="bg-purple-500 w-12 h-12 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-upload text-white text-xl"></i>
+                        </div>
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">Upload</span>
+                    </div>
+                    <div class="flex items-baseline">
+                        <span class="text-5xl font-black text-gray-800" id="uploadValue">--</span>
+                        <span class="text-xl font-semibold text-gray-500 ml-2">Mbps</span>
+                    </div>
+                    <div class="mt-3">
+                        <div class="flex justify-between text-xs text-gray-600 mb-1">
+                            <span>Speed</span>
+                            <span id="uploadQuality">--</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-1.5">
+                            <div id="uploadBar" class="h-full bg-purple-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Server Info Card -->
+                <div class="glass-effect rounded-3xl p-6">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-server text-indigo-600 mr-2"></i>
+                        <span class="text-xs font-bold text-gray-700 uppercase tracking-wider">Test Server</span>
+                    </div>
+                    <div id="serverInfo" class="text-sm text-gray-600 leading-relaxed">
+                        <p class="text-gray-400">No server selected</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8 text-gray-500 text-sm">
+            <p>Powered by Ookla's Speedtest Network | Built with Python Flask</p>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
