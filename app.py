@@ -116,9 +116,11 @@ def get_status():
     return jsonify(current_test)
 
 if __name__ == '__main__':
+    import os
+    port = int(os.environ.get('PORT', 5000))
     print("\n[*] Speed Test Server Starting...")
-    print("[*] Open your browser to: http://localhost:5000")
+    print(f"[*] Running on port {port}")
     print("[*] Press CTRL+C to stop\n")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=False, host='0.0.0.0', port=port)
 
 
